@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Load the jQuery library -->
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Load the jQuery Validator plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.1/dist/jquery.validate.min.js"></script>
+
+    <!-- Load the Hosted Payment Field library -->
+    <script src="https://gateway.example.com/sdk/web/v1/js/hostedfields.min.js"></script>
+
+    <!-- General styles -->
+    <style>
+      body {
+        font-size: 14px;
+      }
+
+      .form-group {
+        margin: 4px 0 15px 0;
+      }
+
+      .form-group label {
+        display: inline-block;
+        max-width: 100%;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      .form-control {
+        display: block;
+        box-sizing: border-box;
+        height: 34px;
+        width: 400px;
+        padding: 6px 12px;
+        font-size: 14px;
+        color: #555;
+        background-color: #fff;
+        background-image: none;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+        -webkit-transition:
+          border-color ease-in-out 0.15s,
+          -webkit-box-shadow ease-in-out 0.15s;
+        -o-transition:
+          border-color ease-in-out 0.15s,
+          box-shadow ease-in-out 0.15s;
+        transition:
+          border-color ease-in-out 0.15s,
+          box-shadow ease-in-out 0.15s;
+      }
+
+      .form-control.hf-focus {
+        border-color: #66afe9;
+        outline: 0;
+        -webkit-box-shadow:
+          inset 0 1px 1px rgba(0, 0, 0, 0.075),
+          0 0 8px rgba(102, 175, 233, 0.6);
+        box-shadow:
+          inset 0 1px 1px rgba(0, 0, 0, 0.075),
+          0 0 8px rgba(102, 175, 233, 0.6);
+      }
+
+      .has-error .form-control.hf-focus {
+        border-color: #843534;
+        -webkit-box-shadow:
+          inset 0 1px 1px rgba(0, 0, 0, 0.075),
+          0 0 6px #ce8483;
+        box-shadow:
+          inset 0 1px 1px rgba(0, 0, 0, 0.075),
+          0 0 6px #ce8483;
+      }
+    </style>
+
+    <!-- Hosted Field internal styles -->
+    <style class="hostedfield">
+      /* Grey out when disabled
+        .hostedfield:disabled {
+            cursor: not-allowed;
+            background-color: #eee;
+            opacity: 1;
+        }*/
+
+      /* Change border and text to green when valid */
+      /* Change border and text to red when invalid */
+      .form-control:invalid,
+      .hostedfield:invalid {
+        border-color: #a94442 !important;
+        color: #a94442 !important;
+      }
+
+      /* Change text to light grey when readonly */
+      .form-control:readonly,
+      .hostedfield:readonly {
+        color: lightgrey !important;
+      }
+
+      /* Emulate webkit auto-fill style */
+      .form-control.hf-autofill,
+      .hostedfield.hf-autofill {
+        background-color: rgb(250, 255, 189) !important;
+        background-image: none !important;
+        color: rgb(0, 0, 0) !important;
+      }
+
+      /* Add light blue placeholder */
+      .form-control::placeholder,
+      .hostedfield::placeholder {
+        color: lightblue;
+      }
+
+      /* Show hovering over the control */
+      .form-control:hover,
+      .hostedfield:hover {
+        font-style: italic;
+      }
+    </style>
+
+    <!-- Style by id (hosted field will have '-hostedfield' appended to the id) -->
+    <style>
+      #form-card-number,
+      #form-card-number-hostedfield {
+        color: darkcyan;
+      }
+    </style>
+
+    <!-- Hosted Field card-number internal styles -->
+    <style class="card-number">
+      .hostedfield::placeholder {
+        color: orange;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- tokenise payment data and send directly to the Gateway -->
+    <form
+      id="form"
+      method="POST"
+      novalidate="novalidate"
+      lang="en"
+      action="https://gateway.example.com/direct/"
+      data-hostedform-tokenize='{"#form-customer-name": "customerName"}'
+    >
+      <input type="hidden" name="merchantID" value="100001" />
+      <input type="hidden" name="action" value="SALE" />
+      <input type="hidden" name="type" value="1" />
+      <input type="hidden" name="countryCode" value="826" />
+      <input type="hidden" name="currencyCode" value="826" />
+      <input type="hidden" name="amount" value="1001" />
+      <input type="hidden" name="orderRef" value="Test purchase" />
+      <input type="hidden" name="transactionUnique" value="1234" />
+      <input
+        type="hidden"
+        name="redirectURL"
+        value="https://www.merchant.com/payment/"
+      />
+      <input
+        type="hidden"
+        name="signature"
+        value="5a0dd6fed71ef68bb3f20175b6a04bbd9d1c904d32ae3f160bd3b8f55740207e5d1e8de5e7e9960b136407e7454b82e428b8378003aa0146df3efa91a3e61b17|merchantID,action,type,countryCode,currencyCode,amount,orderRef,transactionUnique,redirectURL"
+      />
+      <input type="hidden" name="paymentToken" value="" />
+      <div class="form-group">
+        <label for="form-customer-name">Name on card:</label>
+        <input
+          id="form-customer-name"
+          type="text"
+          name="paymentToken[customerName]"
+          autocomplete="cc-name"
+          class="form-control form-control-native hostedfield-tokenise"
+          placeholder="Firstname Surname"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for="form-card-number">Card Number:</label>
+        <input
+          id="form-card-number"
+          type="hostedfield:cardNumber"
+          name="card-number"
+          autocomplete="cc-number"
+          class="form-control form-control-hosted"
+          style="background: #f2f8fb"
+          placeholder="**** **** **** ****"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for="form-card-expiry-date">Card Expiry Date:</label>
+        <input
+          id="form-card-expiry-date"
+          type="hostedfield:cardExpiryDate"
+          name="card-expiry-date"
+          autocomplete="cc-exp"
+          class="form-control form-control-hosted"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for="form-card-start-date">Card Issue Date:</label>
+        <input
+          id="form-card-start-date"
+          type="hostedfield:cardStartDate"
+          name="card-start-date"
+          autocomplete="cc-iss"
+          class="form-control form-control-hosted"
+          data-hostedfield='{"dropdown":true}'
+          data-hostedfield-format="N - m | y"
+          data-hostedfield-min-date="-40"
+          data-hostedfeld-max-date="0"
+        />
+      </div>
+      <div class="form-group">
+        <label for="form-card-cvv">CVV:</label>
+        <input
+          id="form-card-cvv"
+          type="hostedfield:cardCVV"
+          name="card-cvv"
+          autocomplete="cc-csc"
+          class="form-control form-control-hosted"
+          required
+        />
+      </div>
+
+      <button id="form-submit" type="submit">Pay <span>▷</span></button>
+    </form>
+
+    <script>
+      $(document).ready(function () {
+        var $form = $("#form");
+      
+        // Listen for events on the form to see those sent from the Hosted Payment Fields
+        // (For demonstration purposes only)
+        $form.on(events);
+      
+        if (automatic_setup) {
+          // FORM AUTOMATIC SETUP
+      
+          var opts = {
+            // Auto setup the form
+            autoSetup: true,
+      
+            // Auto validate,
+            autoSubmit: true,
+      
+            // Optional field
+            fields: {
+              any: {
+                nativeEvents: {},
+              },
+              cardNumber: {
+                selector: $("#form-card-number"),
+                style: "text-decoration: green wavy underline;",
+                stylesheet: $("style.hostedfields, style.card-number"),
+              },
+            },
+          };
+      
+          try {
+            // Create form, automatically creating all child Hosted Payment Fields
+            $form.hostedForm(opts);
+          } catch (e) {
+            showError("Failed to create hosted form: " + e);
+            throw e; // Can't continue with this script
+          }
+      
+          // Listen for some events from the form thrown by the auto methods
+          $form.on({
+            // Let jQuery Validator check the form on submission
+            "hostedform:presubmit": function (event) {
+              console.log("Form submitting");
+              return $form.valid();
+            },
+      
+            // Show form is valid
+            "hostedform:valid": function (event) {
+              console.log("Form valid");
+              return true;
+            },
+      
+            // Show any validation errors
+            "hostedform:invalid": function (event, details) {
+              console.log("Form invalid");
+              showFieldErrors(details.invalid);
+              return true;
+            },
+            // Show general error
+            "hostedform:error": function (event, details) {
+              showError(details.message);
+              return true;
+            },
+          });
+      
+          // Use jQuery validator to validate the form
+          $form.validate();
+          // End of form automatic setup
+        } else {
+          // FORM MANUAL SETUP
+          try {
+            // Create the card number field with custom options
+            $("#form-card-number").hostedField({
+              nativeEvents: true,
+              style: "text-decoration: green wavy underline;",
+              stylesheet: $("style.hostedfields, style.card-number"),
+            });
+      
+            // Create the remaining hosted fields
+            $(".form-control-hosted:input", $form).hostedField({
+              nativeEvents: true,
+            });
+          } catch (e) {
+            showError("Failed to create hosted fields: " + e);
+            throw e; // Can't continue with this script
+          }
+      
+          $form.validate({
+            // Get the hosted form widget for the submitted form (Form1 only)
+            submitHandler: function () {
+              try {
+                console.log("getPaymentToken");
+      
+                // Check we have some enabled fields to submit
+                if (
+                  $($form[0].elements).filter(':enabled:not([type="hidden"])')
+                    .length === 0
+                ) {
+                  showError("You must enable some fields");
+                  return false;
+                }
+      
+                var hostedform = $form.hostedForm("instance");
+                var also = {
+                  customerName: $("#form-customer-name").val(),
+                };
+      
+                hostedform.getPaymentDetails(also, true).then(
+                  // Success validating the form and requesting a payment token
+                  function (details) {
+                    if (details.success) {
+                      $form[0].elements["paymentToken"].value =
+                        details.paymentToken;
+                      $form[0].submit();
+                    } else if (details.invalid) {
+                      $form.valid();
+                      showFieldErrors(details.invalid);
+                    } else {
+                      showError(
+                        "There was a problem fetching the payment token. Please seek assistance."
+                      );
+                    }
+                  },
+                  // Failure either validating the form or requesting a payment token
+                  function (error) {
+                    showError(
+                      "There was a problem fetching the payment token. Please seek assistance."
+                    );
+                  }
+                );
+              } catch (e) {
+                showError(
+                  "There was a problem fetching the payment token. Please seek assistance."
+                );
+              }
+            },
+          });
+          // End of form manual setup
+        }
+      
+        // Hide errors once all fields are valid
+        $('#form :input').on('valid', function () {
+          if ($(this.form).find(':invalid').length === 0) {
+            hideError($(this.form));
+          }
+        });
+      
+        // Listen for some events on the non-Hosted Fields
+        $('.form-control-native').on('invalid', bsMarkInvalid);
+        $('.form-control-native').on('valid', bsMarkValid);
+      
+        // Check we can see the Hosted Fields via their new class
+        // (For demonstration purposes only)
+        console.log($('.form-control-hosted.hostedfield-element'));
+      
+        // Check we can see the Hosted Fields via the pseudo-element
+        // (For demonstration purposes only)
+        console.log($('.form-control:hostedfield'));
+      });
+      
+      // Supporting functions
+      // Display events that are passed from hosted field
+      var events = {
+        'hostedfield:create.example': showEvent,
+        'hostedfield:destroy.example': showEvent,
+        'hostedfield:ready.example': showEvent,
+        'hostedfield:style.example': showEvent,
+        'hostedfield:placeholder.example': showEvent,
+        'hostedfield:invalid.example': showEvent,
+        'invalid.example': showEvent,
+        'hostedfield:userinvalid.example': showEvent,
+        'userinvalid.example': showEvent,
+        'hostedfield:valid.example': showEvent,
+        'valid.example': showEvent,
+        'hostedfield:uservalid.example': showEvent,
+        'uservalid.example': showEvent,
+        'hostedfield:disabled.example': showEvent,
+        'disabled.example': showEvent,
+        'hostedfield:enabled.example': showEvent,
+        'enabled.example': showEvent,
+        'hostedfield:required.example': showEvent,
+        'required.example': showEvent,
+        'hostedfield:optional.example': showEvent,
+        'optional.example': showEvent,
+        'hostedfield:readonly.example': showEvent,
+        'readonly.example': showEvent,
+        'hostedfield:readwrite.example': showEvent,
+        'readwrite.example': showEvent,
+        'hostedfield:focus.example': showEvent,
+        'focus.example': showEvent,
+        'hostedfield:blur.example': showEvent,
+        'blur.example': showEvent,
+        'hostedfield:mouseenter.example': showEvent,
+        'mouseenter.example': showEvent,
+        'hostedfield:mouseleave.example': showEvent,
+        'mouseleave.example': showEvent
+      };
+      
+      function isInvalid(element) {
+        return !element[0].checkValidity();
+      }
+      
+      function showError(msg) {
+        $('#error-info').html(msg).show();
+      }
+      
+      function hideError($form, msg) {
+        $('#error-info', $form).hide();
+      }
+      
+      function showFieldErrors(errors) {
+        var msg = '<h5>Error</h5><p>The following fields are invalid:</p><ul>';
+        for (var p in errors) {
+          msg += '<li><b>' + p + ':</b> ' + errors[p] + '</li>';
+        }
+        msg += '</ul>'
+        showError(msg);
+      }
+      
+      function bsMarkInvalid(e) {
+        var element = (e instanceof $.Event ? this : e);
+        $(element).closest('.form-group').addClass('has-error');
+      }
+      
+      function bsMarkValid(e) {
+        var element = (e instanceof $.Event ? this : e);
+        $(element).closest('.form-group').removeClass('has-error');
+      }
+      
+      function showEvent(event) {
+        console.log(event);
+        console.log('Field ' + event.type + ' event: ', this, arguments);
+      }
+      
+      jQuery.validator.setDefaults({
+        ignore: [],
+        rules: {
+          'customer-name': {
+            checkValidity: true,
+            required: false
+          },
+          'card-details': {
+            checkValidity: true,
+            required: false
+          },
+          'card-number': {
+            checkValidity: true,
+            required: false
+          },
+          'card-expiry-date': {
+            checkValidity: true,
+            required: false,
+          },
+          'card-start-date': {
+            checkValidity: true,
+            required: false
+          },
+          'card-issue-number': {
+            checkValidity: true,
+            required: false
+          },
+          'card-cvv': {
+            checkValidity: true,
+            required: false
+          }
+        },
+        keyup: null, // Don't validate on keyup
+        showErrors: function (errorMap, errorList) {
+          if (errorList && errorList.length) {
+            var errors = {};
+            for (var i = 0, max_i = errorList.length; i < max_i; i++) {
+              var label = $('label[for="' + errorList[i].element.id + '"]:not(".error")').text();
+              errors[label] = errorList[i].message;
+            }
+            showFieldErrors(errors);
+          }
+          this.defaultShowErrors(errorMap, errorList);
+        },
+        highlight: bsMarkInvalid,
+        unhighlight: bsMarkValid,
+        errorPlacement: function (error, element) {
+          $(element).closest('.form-control:not(".hostedfield-element")').after(error);
+        }
+      });
+      
+      $.validator.addMethod(
+        'checkValidity',
+        function (value, element, params, message) {
+          element.checkValidity();
+          var valid = (element.validationMessage === '');
+          $(element).attr('aria-invalid', !valid);
+          return valid;
+        },
+        function (params, element) {
+          return element.validationMessage;
+        }
+      );
+    </script>
+  </body>
+</html>
